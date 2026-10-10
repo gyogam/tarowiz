@@ -107,7 +107,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .cta:disabled{opacity:.45;cursor:default}
 .cta:not(:disabled){box-shadow:0 0 22px rgba(162,43,255,.45)}
 .cta:not(:disabled):active{transform:scale(.98)}
-#selCta{top:692px}.one #selCta{top:596px}
+#selCta{position:relative;left:auto;top:auto;display:block;margin:0 20px calc(24px + env(safe-area-inset-bottom));width:calc(100% - 40px)}
 .ghost{position:fixed;z-index:50;pointer-events:none;border-radius:8px;background:var(--back) center/100% 100% no-repeat;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 22px rgba(190,150,255,.6);transform:translate(-50%,-62%) rotate(-3deg)}
 
 /* 결과 */
@@ -190,8 +190,8 @@ button{font-family:inherit;color:inherit;cursor:pointer}
       <div class="deck" id="deck"></div>
       <div class="slots" id="slots"></div>
       <div class="big" id="big"></div>
-      <button class="cta" id="selCta" disabled>결과 보기</button>
     </div></div>
+    <button class="cta" id="selCta" disabled>결과 보기</button>
   </section>
 
   <!-- 결과 -->
@@ -856,18 +856,24 @@ document.querySelectorAll('[data-img]').forEach(el => { el.src = IMG[el.dataset.
 let S = 1;
 const ro = new ResizeObserver(() => sizeScalers());
 function sizeScalers(){
-  /* 좌우 세이프에어리어는 항상 20px 고정. 나머지(콘텐츠 335 기준)는 남은 폭에 비례 */
-  const sw = Math.min(Math.max(window.innerWidth - 40, 280) / 335, 1.2);
+  /* 좌우 세이프에어리어는 항상 20px 고정. 콘텐츠(335 기준)는 남은 폭에 비례. 세로는 줄이지 않고 모자라면 스크롤 */
+  const s = Math.min(Math.max(window.innerWidth - 40, 280) / 335, 1.2);
+  S = s;
   document.querySelectorAll('.screen').forEach(sc => {
     const col = sc.querySelector('.col'), sz = sc.querySelector('.scaler');
-    /* 홈·선택 화면은 한 화면에 다 들어와야 하므로 키가 작은 폰에서는 높이에 맞춰 줄임(최소 0.8). 결과 화면은 스크롤되므로 폭 기준 */
-    const hs = sc.clientHeight / 812;
-    const s = sc.id === 'result' || hs >= sw * 0.95 ? sw : Math.min(sw, Math.max(0.8, hs));
-    if (sc.id === 'select') S = s;
     col.style.transform = `translateX(${20 - 20 * s}px) scale(${s})`;
-    col.style.minHeight = Math.max(812, sc.clientHeight / s) + 'px';
+    if (sc.id === 'select'){
+      const one = col.classList.contains('one'), H = one ? 560 : 680;
+      col.style.minHeight = H + 'px';
+      sz.style.height = H * s + 'px';
+      const cta = document.getElementById('selCta');
+      cta.style.marginTop = (one ? 36 : 28) * s + 'px';
+      cta.style.height = Math.round(56 * s) + 'px';
+    } else {
+      col.style.minHeight = Math.max(812, sc.clientHeight / s) + 'px';
+      sz.style.height = col.offsetHeight * s + 'px';
+    }
     sz.style.width = (335 * s + 40) + 'px';
-    sz.style.height = col.offsetHeight * s + 'px';
   });
 }
 document.querySelectorAll('.col').forEach(c => ro.observe(c));
@@ -960,6 +966,7 @@ function fillSlot(i, deckCard){
     const sc = document.createElement('div'); sc.className = 'sc'; slotEls[i].appendChild(sc);
   }
   selCta.disabled = picks.some(p => !p);
+  if (!selCta.disabled) setTimeout(() => { const r = selCta.getBoundingClientRect(), sc = $('#select'); if (r.bottom > sc.clientHeight - 8) selCta.scrollIntoView({behavior:'smooth', block:'end'}); }, 350);
 }
 function returnCard(i){
   const p = picks[i]; if (!p) return;
