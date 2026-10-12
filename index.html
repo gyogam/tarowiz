@@ -129,7 +129,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .cta:not(:disabled){box-shadow:0 0 22px rgba(162,43,255,.45)}
 .cta:not(:disabled):active{transform:scale(.98)}
 #selCta{position:relative;left:auto;top:auto;display:block;margin:0 20px calc(24px + env(safe-area-inset-bottom));width:calc(100% - 40px)}
-.ghost{position:fixed;z-index:50;pointer-events:none;border-radius:8px;background:var(--back) center/100% 100% no-repeat;box-shadow:0 12px 30px rgba(0,0,0,.5),0 0 22px rgba(190,150,255,.6);transform:translate(-50%,-62%) rotate(-3deg)}
+.ghost{position:fixed;z-index:50;pointer-events:none;border-radius:8px;background:var(--back) center/100% 100% no-repeat;box-shadow:0 6px 16px rgba(0,0,0,.45),0 0 12px rgba(190,150,255,.55)}
 
 /* 결과 */
 .rcol{padding-top:177px;padding-bottom:44px}
@@ -1012,7 +1012,8 @@ function startDrag(e, host, init){
   if (drag){ endLift(drag); drag = null; }
   clearGhosts();
   e.preventDefault();
-  drag = Object.assign({x:e.clientX, y:e.clientY, moving:false, ghost:null}, init);
+  const src = (init.c || init.sc).getBoundingClientRect();
+  drag = Object.assign({x:e.clientX, y:e.clientY, moving:false, ghost:null, ox:e.clientX - src.left, oy:e.clientY - src.top, w:src.width, h:src.height}, init);
   try { host.setPointerCapture(e.pointerId); } catch(_){}
 }
 deckEl.addEventListener('pointerdown', e => {
@@ -1045,11 +1046,11 @@ function onMove(e){
   if (!drag.moving && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8){
     drag.moving = true; (drag.c || drag.sc).classList.add('lift'); vib(6);
     const g = document.createElement('div'); g.className = 'ghost';
-    const w = 78 * S; g.style.width = w + 'px'; g.style.height = w * 1.82 + 'px';
+    g.style.width = drag.w + 'px'; g.style.height = drag.h + 'px';
     document.body.appendChild(g); drag.ghost = g;
   }
   if (drag.moving){
-    drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
+    drag.ghost.style.left = (e.clientX - drag.ox) + 'px'; drag.ghost.style.top = (e.clientY - drag.oy) + 'px';
     const i = slotAt(e.clientX, e.clientY, drag.kind === 'slot' ? drag.i : -1);
     slotEls.forEach((s, k) => s.classList.toggle('over', k === i));
   }
