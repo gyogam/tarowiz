@@ -83,7 +83,8 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 
 /* 카드 선택 */
 .deck{position:absolute;left:0;top:220px;width:375px;height:262px;touch-action:none;transition:opacity .5s ease}
-.one .deck{top:245px}
+.one .navi{top:0}.one .navi .logo{top:14px}.one .back{top:18px}.one .title{top:77px}.one .rule{top:114px}.one .hint{top:134px}
+.one .deck{top:174px}
 .deck.dim{opacity:.35}
 .drow{position:absolute;left:0}
 .dc{position:absolute;top:0;width:45px;height:82px;border-radius:5px;background:var(--back) center/100% 100% no-repeat;opacity:.62;
@@ -99,8 +100,28 @@ button{font-family:inherit;color:inherit;cursor:pointer}
 .slot.filled b{display:none}
 .big{position:absolute;left:105px;top:225px;width:165px;height:300px;display:none}
 .big .sc{position:absolute;inset:0;border-radius:10px;background:var(--back) center/100% 100% no-repeat;box-shadow:0 0 30px rgba(190,150,255,.6);animation:pop .45s cubic-bezier(.3,1.5,.5,1) both}
-.one .big.on{display:block}
-.one .slots{display:none}
+.one .slots{top:461px}
+.one .slot{left:141px}
+.slot.one::before{content:"";position:absolute;left:7px;top:5px;width:78px;height:142px;border-radius:7px;background:var(--back) center/100% 100% no-repeat;opacity:.22}
+.slot.one b{position:relative;white-space:nowrap;font-size:14px;line-height:19px;text-align:center;opacity:.85}
+.slot.one.filled::before{display:none}
+.slot .sc{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.slot .sc.lift{opacity:.22}
+.dimmer{position:fixed;inset:0;z-index:20;background:rgba(6,0,18,.78);opacity:0;pointer-events:none;transition:opacity .45s ease}
+.dimmer.on{opacity:1;pointer-events:auto}
+.rv{position:fixed;z-index:30;perspective:800px}
+.rv .fin{position:relative;width:100%;height:100%;transform-style:preserve-3d}
+.rv.open .fin{transform:rotateY(180deg);animation:flipCard 1.2s cubic-bezier(.45,.05,.25,1) both}
+.rv .face{position:absolute;inset:0;border-radius:7px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
+.rv .f-back{background:var(--back) center/100% 100% no-repeat;box-shadow:0 0 14px rgba(170,140,255,.5)}
+.rv .f-front{transform:rotateY(180deg)}
+.rv .f-front img{width:100%;height:100%;display:block}
+.rv .f-front img.rev{transform:rotate(180deg)}
+.rv.open{filter:drop-shadow(0 0 16px rgba(190,150,255,.6))}
+.cancelb{position:fixed;z-index:31;border-radius:50%;border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.14);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-size:14px;font-weight:700;color:#fff;opacity:0;transition:opacity .35s ease}
+.cancelb.on{opacity:1}
+.fc.shown .fin{transform:rotateY(180deg);animation:none}
+.fc.shown{filter:drop-shadow(0 0 16px rgba(190,150,255,.55))}
 @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 .cta{position:absolute;left:20px;width:335px;height:56px;border-radius:28px;border:1px solid var(--violet);font-size:16px;font-weight:700;
   background:linear-gradient(180deg,var(--btn-a),var(--btn-b));transition:opacity .3s,transform .2s,box-shadow .3s}
@@ -192,6 +213,7 @@ button{font-family:inherit;color:inherit;cursor:pointer}
       <div class="big" id="big"></div>
     </div></div>
     <button class="cta" id="selCta" disabled>결과 보기</button>
+    <div class="dimmer" id="dimmer"></div>
   </section>
 
   <!-- 결과 -->
@@ -863,11 +885,11 @@ function sizeScalers(){
     const col = sc.querySelector('.col'), sz = sc.querySelector('.scaler');
     col.style.transform = `translateX(${20 - 20 * s}px) scale(${s})`;
     if (sc.id === 'select'){
-      const one = col.classList.contains('one'), H = one ? 560 : 680;
+      const one = col.classList.contains('one'), H = one ? 615 : 680;
       col.style.minHeight = H + 'px';
       sz.style.height = H * s + 'px';
       const cta = document.getElementById('selCta');
-      cta.style.marginTop = (one ? 36 : 28) * s + 'px';
+      cta.style.marginTop = (one ? 43 : 28) * s + 'px';
       cta.style.height = Math.round(56 * s) + 'px';
     } else {
       col.style.minHeight = Math.max(812, sc.clientHeight / s) + 'px';
@@ -881,6 +903,7 @@ window.addEventListener('resize', sizeScalers);
 sizeScalers();
 
 function show(id){
+  if (id !== 'result') cancelReveal(true);
   runId++; if (typeof clearGhosts === 'function') clearGhosts();
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
   document.getElementById(id).scrollTop = 0;
@@ -930,28 +953,29 @@ const selCol = $('#selCol'), deckEl = $('#deck'), slotsEl = $('#slots'), bigEl =
   }});
 })();
 function openSelect(t){
+  cancelReveal(true);
   theme = t; picks = new Array(t.n).fill(null);
   remaining = Object.keys(CARDS);
   deckCards.forEach(c => c.classList.remove('gone','lift'));
-  deckEl.classList.remove('dim');
   selCol.className = 'col ' + (t.n === 1 ? 'one' : 'three');
   $('#selTitle').textContent = t.title;
-  $('#selHint').textContent = t.n === 1 ? '카드를 1장 뽑아주세요' : '카드를 3장 드래그해서 아래로 옮겨주세요.';
+  $('#selHint').textContent = t.n === 1 ? '카드 1장을 드래그해서 아래로 놓아주세요.' : '카드를 3장 드래그해서 아래로 옮겨주세요.';
   slotsEl.innerHTML = ''; slotEls = [];
-  bigEl.innerHTML = ''; bigEl.classList.remove('on');
   if (t.n === 3){
     t.pos.forEach((p, i) => {
       const s = document.createElement('div'); s.className = 'slot'; s.style.left = (34 + i*105) + 'px';
       s.innerHTML = `<b>${p[0]}</b>`;
-      s.addEventListener('click', () => returnCard(i));
       slotsEl.appendChild(s); slotEls.push(s);
     });
   } else {
-    bigEl.onclick = () => returnCard(0);
+    const s = document.createElement('div'); s.className = 'slot one';
+    s.innerHTML = '<b>카드를<br>놓아주세요</b>';
+    slotsEl.appendChild(s); slotEls.push(s);
   }
   selCta.disabled = true;
   show('select');
 }
+/* 선택은 드래그로만. 놓은 순간 카드가 정해지고, 덱으로 다시 끌어 올리면 원래 자리로 돌아가 다시 뽑을 수 있음 */
 function fillSlot(i, deckCard){
   if (picks[i]) return;
   const idx = Math.floor(Math.random() * remaining.length);
@@ -959,88 +983,143 @@ function fillSlot(i, deckCard){
   picks[i] = {id, dir: Math.random() < .5 ? 'upright' : 'reversed', deckCard};
   deckCard.classList.remove('lift'); deckCard.classList.add('gone');
   vib(16);
-  if (theme.n === 1){
-    bigEl.innerHTML = '<div class="sc"></div>'; bigEl.classList.add('on'); deckEl.classList.add('dim');
-  } else {
-    slotEls[i].classList.add('filled'); slotEls[i].classList.remove('over');
-    const sc = document.createElement('div'); sc.className = 'sc'; slotEls[i].appendChild(sc);
-  }
+  slotEls[i].classList.add('filled'); slotEls[i].classList.remove('over');
+  const sc = document.createElement('div'); sc.className = 'sc'; slotEls[i].appendChild(sc);
+  syncCta();
+}
+function syncCta(){
   selCta.disabled = picks.some(p => !p);
   if (!selCta.disabled) setTimeout(() => { const r = selCta.getBoundingClientRect(), sc = $('#select'); if (r.bottom > sc.clientHeight - 8) selCta.scrollIntoView({behavior:'smooth', block:'end'}); }, 350);
 }
+function clearSlotDom(i){ slotEls[i].classList.remove('filled','over'); const sc = slotEls[i].querySelector('.sc'); if (sc) sc.remove(); }
 function returnCard(i){
   const p = picks[i]; if (!p) return;
   remaining.push(p.id); p.deckCard.classList.remove('gone'); picks[i] = null; vib(8);
-  if (theme.n === 1){ bigEl.classList.remove('on'); bigEl.innerHTML=''; deckEl.classList.remove('dim'); }
-  else { slotEls[i].classList.remove('filled'); const sc = slotEls[i].querySelector('.sc'); if (sc) sc.remove(); }
-  selCta.disabled = true;
+  clearSlotDom(i); selCta.disabled = true;
+}
+function moveCard(i, j){
+  picks[j] = picks[i]; picks[i] = null; clearSlotDom(i);
+  slotEls[j].classList.add('filled'); const sc = document.createElement('div'); sc.className = 'sc'; slotEls[j].appendChild(sc); vib(10);
 }
 const firstEmpty = () => picks.findIndex(p => !p);
 
-/* 드래그: 포인터 이동이 8px 넘으면 드래그, 아니면 탭으로 다음 빈 자리에 채움 */
+/* 드래그 전용: 덱 카드 → 빈 슬롯(선택), 슬롯 카드 → 덱 영역(취소) 또는 다른 빈 슬롯(이동). 탭만으로는 아무 일도 일어나지 않음 */
 let drag = null;
 function clearGhosts(){ document.querySelectorAll('.ghost').forEach(g => g.remove()); }
-deckEl.addEventListener('pointerdown', e => {
-  if (!e.isPrimary) return;
-  if (drag){ drag.c.classList.remove('lift'); drag = null; }   // 이전 드래그가 끊긴 채 남아 있으면 정리
+function endLift(d){ if (!d) return; if (d.c) d.c.classList.remove('lift'); if (d.sc) d.sc.classList.remove('lift'); }
+function startDrag(e, host, init){
+  if (!e.isPrimary || revealing) return;
+  if (drag){ endLift(drag); drag = null; }
   clearGhosts();
+  e.preventDefault();
+  drag = Object.assign({x:e.clientX, y:e.clientY, moving:false, ghost:null}, init);
+  try { host.setPointerCapture(e.pointerId); } catch(_){}
+}
+deckEl.addEventListener('pointerdown', e => {
   const c = e.target.closest('.dc');
   if (!c || c.classList.contains('gone') || firstEmpty() < 0) return;
-  e.preventDefault();
-  drag = {c, x:e.clientX, y:e.clientY, moving:false, ghost:null, over:-1};
-  try { deckEl.setPointerCapture(e.pointerId); } catch(_){}
+  startDrag(e, deckEl, {kind:'deck', c});
 });
-function slotAt(x, y){
-  if (theme.n === 1) return firstEmpty();
+slotsEl.addEventListener('pointerdown', e => {
+  const sc = e.target.closest('.sc'); if (!sc) return;
+  const i = slotEls.indexOf(sc.parentElement); if (i < 0 || !picks[i]) return;
+  startDrag(e, slotsEl, {kind:'slot', i, sc});
+});
+function slotAt(x, y, skip){
   let best = -1, bd = 1e9;
   slotEls.forEach((s, i) => {
-    if (picks[i]) return;
-    const r = s.getBoundingClientRect(), pad = 18 * S;
+    if (picks[i] || i === skip) return;
+    const r = s.getBoundingClientRect(), pad = 20 * S;
     if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad){
       const d = Math.hypot(x - (r.left + r.width/2), y - (r.top + r.height/2)); if (d < bd){ bd = d; best = i; }
     }
   });
   return best;
 }
-deckEl.addEventListener('pointermove', e => {
+function inDeck(x, y){
+  const r = deckEl.getBoundingClientRect(), pad = 16 * S;
+  return x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad;
+}
+function onMove(e){
   if (!drag || !e.isPrimary) return;
   if (!drag.moving && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8){
-    drag.moving = true; drag.c.classList.add('lift'); vib(6);
+    drag.moving = true; (drag.c || drag.sc).classList.add('lift'); vib(6);
     const g = document.createElement('div'); g.className = 'ghost';
-    const w = (theme.n === 1 ? 100 : 78) * S; g.style.width = w + 'px'; g.style.height = w * 1.82 + 'px';
+    const w = 78 * S; g.style.width = w + 'px'; g.style.height = w * 1.82 + 'px';
     document.body.appendChild(g); drag.ghost = g;
   }
   if (drag.moving){
     drag.ghost.style.left = e.clientX + 'px'; drag.ghost.style.top = e.clientY + 'px';
-    const i = slotAt(e.clientX, e.clientY);
-    if (theme.n === 3) slotEls.forEach((s, k) => s.classList.toggle('over', k === i));
+    const i = slotAt(e.clientX, e.clientY, drag.kind === 'slot' ? drag.i : -1);
+    slotEls.forEach((s, k) => s.classList.toggle('over', k === i));
   }
-});
+}
 function endDrag(e, cancel){
   clearGhosts();
   if (!drag) return;
   const d = drag; drag = null;
-  if (theme.n === 3) slotEls.forEach(s => s.classList.remove('over'));
-  if (cancel){ d.c.classList.remove('lift'); return; }
-  if (!d.moving){ fillSlot(firstEmpty(), d.c); return; }
-  let i = slotAt(e.clientX, e.clientY);
-  if (theme.n === 1){
-    const top = $('#selCol').getBoundingClientRect().top + 170 * S;
-    i = e.clientY > top ? 0 : -1;
+  slotEls.forEach(s => s.classList.remove('over'));
+  endLift(d);
+  if (cancel || !d.moving) return;                       // 탭만 한 경우: 아무 일도 없음
+  const x = e.clientX, y = e.clientY;
+  if (d.kind === 'deck'){
+    const i = slotAt(x, y, -1);
+    if (i >= 0) fillSlot(i, d.c);
+  } else {
+    if (inDeck(x, y)) returnCard(d.i);                    // 덱 영역에서 놓으면 취소 → 원래 자리로
+    else { const j = slotAt(x, y, d.i); if (j >= 0) moveCard(d.i, j); }
   }
-  if (i >= 0) fillSlot(i, d.c); else d.c.classList.remove('lift');
 }
-deckEl.addEventListener('pointerup', e => endDrag(e, false));
-deckEl.addEventListener('pointercancel', e => endDrag(e, true));
-/* 포인터가 덱 밖에서 놓이거나 끊겨도 공중에 남지 않도록 창 전체에서도 정리 */
+[deckEl, slotsEl].forEach(h => {
+  h.addEventListener('pointermove', onMove);
+  h.addEventListener('pointerup', e => endDrag(e, false));
+  h.addEventListener('pointercancel', e => endDrag(e, true));
+  h.addEventListener('lostpointercapture', e => { if (drag) endDrag(e, true); });
+});
+/* 포인터가 밖에서 놓이거나 끊겨도 공중에 남지 않도록 창 전체에서도 정리 */
+window.addEventListener('pointermove', e => { if (drag && drag.moving) onMove(e); });
 window.addEventListener('pointerup', e => { if (drag) endDrag(e, false); });
 window.addEventListener('pointercancel', e => endDrag(e, true));
-deckEl.addEventListener('lostpointercapture', e => { if (drag) endDrag(e, true); });
 window.addEventListener('blur', () => endDrag({}, true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) endDrag({}, true); });
 
+/* 한 장 뽑기: 결과 보기 → 딤 → 카드 뒤집힘 → 딤 해제 → 결과 */
+let revealing = null, revealEls = null;
+function cancelReveal(silent){
+  if (!revealing) return;
+  revealing = null;
+  const dm = $('#dimmer'); dm.classList.remove('on');
+  if (revealEls){ revealEls.card.remove(); revealEls.btn.remove(); revealEls = null; }
+  const sc = slotEls[0] && slotEls[0].querySelector('.sc'); if (sc) sc.style.visibility = '';
+  if (!silent) syncCta();
+}
+async function startReveal(){
+  const tok = revealing = {}, pk = picks[0], c = CARDS[pk.id];
+  selCta.disabled = true;
+  const slot = slotEls[0], r = slot.getBoundingClientRect(), sc = slot.querySelector('.sc');
+  const cr = sc.getBoundingClientRect();
+  const card = document.createElement('div'); card.className = 'rv';
+  card.style.cssText = `left:${cr.left}px;top:${cr.top}px;width:${cr.width}px;height:${cr.height}px`;
+  card.innerHTML = `<div class="fin"><div class="face f-back"></div><div class="face f-front"><img class="${pk.dir==='reversed'?'rev':''}" src="${IMG[c.img]}" alt=""></div></div>`;
+  const btn = document.createElement('button'); btn.className = 'cancelb'; btn.textContent = '취소';
+  const bw = 52 * S; btn.style.cssText = `width:${bw}px;height:${bw}px;left:${r.right + 10*S}px;top:${cr.bottom - bw - 6*S}px`;
+  document.body.append(card, btn); sc.style.visibility = 'hidden'; revealEls = {card, btn};
+  btn.addEventListener('click', () => { if (revealing === tok){ vib(8); cancelReveal(); } });
+  $('#dimmer').classList.add('on');
+  await sleep(120); btn.classList.add('on');
+  await sleep(420); if (revealing !== tok) return;
+  vib([10,30,14]); setTimeout(() => vib(20), 880); card.classList.add('open');
+  await sleep(1450); if (revealing !== tok) return;
+  btn.classList.remove('on');
+  revealing = null;
+  openResult(true);                                          // 딤이 걷히는 동안 결과 화면으로
+  $('#dimmer').classList.remove('on');
+  await sleep(650);
+  card.remove(); btn.remove(); revealEls = null; sc.style.visibility = '';
+}
+
 $('#selBack').addEventListener('click', () => { vib(8); goHome(); });
-selCta.addEventListener('click', () => { if (!selCta.disabled){ vib([12,40,12]); openResult(); } });
+selCta.addEventListener('click', () => { if (selCta.disabled || revealing) return; vib([12,40,12]); if (theme.n === 1) startReveal(); else openResult(); });
 
 function goHome(){
   show('home');
@@ -1102,7 +1181,7 @@ function waitNext(my){
   });
 }
 
-async function openResult(){
+async function openResult(pre){
   const t = theme, my = (show('result'), runId);
   $('#resTitle').textContent = t.title;
   rbubs.innerHTML = ''; chipsEl.innerHTML = ''; rlabel.classList.remove('on'); rlabel.innerHTML = '&nbsp;';
@@ -1117,10 +1196,11 @@ async function openResult(){
   });
   $('#result').scrollTop = 0;
   try {
-    await sleep(900); if (my !== runId) return;
+    await sleep(pre && t.n === 1 ? 500 : 900); if (my !== runId) return;
     if (t.n === 1){
       const r = readings[0];
-      flip(els[0]); await sleep(1250); setLabel('', r); await sleep(500);
+      if (pre){ els[0].classList.remove('wait'); els[0].classList.add('shown'); setLabel('', r); await sleep(450); }
+      else { flip(els[0]); await sleep(1250); setLabel('', r); await sleep(500); }
       await say(my, '당신은...', 500);
       await say(my, line(r.id, r.dir, 'feel'), 800);
       await say(my, line(r.id, r.dir, t.key), 800);
